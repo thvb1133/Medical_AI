@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas-light text-ink-900 antialiased;
+    font-family:
+      ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+      sans-serif;
+    font-size: 12px;
+  }
+
+  .dark body {
+    @apply bg-canvas-dark text-white;
+  }
+
+  /* The console is dense; a slim scrollbar keeps the panels from losing width. */
+  .thin-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd0d6 transparent;
+  }
+
+  .thin-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .thin-scroll::-webkit-scrollbar-thumb {
+    background-color: #cbd0d6;
+    border-radius: 3px;
+  }
+
+  .dark .thin-scroll::-webkit-scrollbar-thumb {
+    background-color: #3a3f46;
+  }
+
+  .thin-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .panel-card {
+    @apply rounded-card border border-hairline-light bg-panel-light shadow-card;
+  }
+
+  .dark .panel-card {
+    @apply border-hairline-dark bg-panel-dark;
+  }
+
+  .section-heading {
+    @apply text-micro font-semibold uppercase tracking-[0.09em] text-ink-400;
+  }
+
+  .metric-row {
+    @apply flex items-baseline justify-between gap-2 leading-[15px];
+  }
+
+  .metric-label {
+    @apply truncate text-metric text-ink-700;
+  }
+
+  .dark .metric-label {
+    @apply text-ink-300;
+  }
+
+  .field {
+    @apply w-full rounded-md border border-hairline-light bg-white px-3 py-2 text-[13px] text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-accent focus:ring-2 focus:ring-accent/20;
+  }
+
+  .dark .field {
+    @apply border-hairline-dark bg-panel-dark text-white;
+  }
+}
