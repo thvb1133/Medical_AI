@@ -15,20 +15,56 @@ import type { RiskLevel, Telemetry } from "./types";
 
 const CRISIS_PATTERNS: RegExp[] = [
   /\b(kill|killing)\s+(myself|me)\b/i,
-  /\bend(ing)?\s+(my|it)\s*(life|all)?\b/i,
+  /\bend(ing)?\s+(my\s+life|it\s+all)\b/i,
   /\b(take|taking)\s+my\s+own\s+life\b/i,
   /\bsuicid(e|al)\b/i,
-  /\b(don'?t|do not|not)\s+want\s+to\s+(keep\s+)?(living|live|be here|exist)\b/i,
-  /\b(want|going)\s+to\s+die\b/i,
-  /\bbetter\s+off\s+(dead|without me)\b/i,
+  /\b(want|going|planning)\s+to\s+die\b/i,
+  /\bwish\s+(i\s+(was|were)\s+(dead|gone)|i\s+(wasn'?t|was not)\s+(here|alive|around))\b/i,
+  /\bbetter\s+off\s+(dead|without\s+me)\b/i,
   /\bhurt(ing)?\s+myself\b/i,
   /\bself[-\s]?harm(ing)?\b/i,
   /\bcut(ting)?\s+myself\b/i,
   /\boverdos(e|ing)\b/i,
-  /\bi\s+have\s+a\s+plan\b/i,
 ];
 
+/**
+ * Phrases about continuing to exist. On their own these are neutral — "I want
+ * to keep living" is a good thing to hear — so they only count as risk when
+ * something nearby negates or casts doubt on them.
+ */
+const LIVING_PHRASES =
+  /\b(keep|carry on|go on|continue|bother)?\s*(living|live|be(ing)? here|be(ing)? alive|exist(ing)?|wake up tomorrow|waking up)\b/gi;
+
+/**
+ * Negation and doubt markers. The window matters: the demo phrase "I'm not
+ * really sure if I want to keep living" puts four words between the negator
+ * and the phrase, which a naive `not\s+want\s+to` pattern misses entirely.
+ */
+const DOUBT_MARKERS =
+  // The contraction list is spelled out rather than matched generically: a
+  // pattern like \w*n't also matches "want", which would flag "I want to keep
+  // living" as its own opposite.
+  /(\b(do|does|did|is|was|are|were|has|have|had|ca|could|would|should|wo|ai|am)n'?t\b|\b(not|no longer|never|nothing|unsure|doubt|hardly|stop|why|point|reason|tired of|done with|scared to|afraid to)\b)/i;
+
+const DOUBT_WINDOW = 60;
+
+/**
+ * True when a phrase about continuing to exist is preceded by doubt or
+ * negation within a short window.
+ */
+function hasNegatedLiving(text: string): boolean {
+  LIVING_PHRASES.lastIndex = 0;
+  for (let m = LIVING_PHRASES.exec(text); m !== null; m = LIVING_PHRASES.exec(text)) {
+    const before = text.slice(Math.max(0, m.index - DOUBT_WINDOW), m.index);
+    if (DOUBT_MARKERS.test(before)) return true;
+  }
+  return false;
+}
+
 const HIGH_PATTERNS: RegExp[] = [
+  // Ambiguous alone — "I have a plan for the weekend" is not risk — so it
+  // alerts a clinician rather than triggering the full crisis response.
+  /\bi\s+(have|made)\s+a\s+plan\b/i,
   /\bno\s+(point|reason)\s+(in\s+)?(going on|living|anything)\b/i,
   /\bcan'?t\s+(go on|take it|do this)\s*(anymore|any more)?\b/i,
   /\b(everyone|they)\s+would\s+be\s+better\s+off\b/i,
@@ -50,7 +86,7 @@ const MODERATE_PATTERNS: RegExp[] = [
 ];
 
 const LOW_PATTERNS: RegExp[] = [
-  /\b(stressed|overwhelmed|struggling|tired|worried|low)\b/i,
+  /\b(stress(ed|ful)?|overwhelmed|struggling|tired|worried|low|rough|difficult)\b/i,
 ];
 
 const ORDER: RiskLevel[] = ["none", "low", "moderate", "high", "crisis"];
@@ -74,7 +110,7 @@ export function assessText(text: string): RiskAssessment {
   const match = (patterns: RegExp[]) => patterns.find((p) => p.test(text));
 
   const crisis = match(CRISIS_PATTERNS);
-  if (crisis) {
+  if (crisis || hasNegatedLiving(text)) {
     return {
       level: "crisis",
       reason: "Patient expressed suicidal ideation or intent to self-harm.",
