@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-calm-950 text-calm-100 antialiased;
+  background-image:
+    radial-gradient(60rem 40rem at 15% -10%, rgba(71, 126, 122, 0.22), transparent),
+    radial-gradient(50rem 35rem at 90% 0%, rgba(40, 66, 65, 0.35), transparent);
+  background-attachment: fixed;
+}
+
+/* Respect users who find motion uncomfortable — relevant here more than most. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
