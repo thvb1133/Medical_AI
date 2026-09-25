@@ -255,6 +255,11 @@ export function useConsultation(config: ConsultationConfig) {
       return;
     }
 
+    if (!micOn) {
+      setNotice("Unmute the microphone to use voice input.");
+      return;
+    }
+
     const listener = startListening({
       onUtterance: (text) => void send(text),
       onError: (message) => setNotice(`Voice input error: ${message}`),
@@ -266,7 +271,7 @@ export function useConsultation(config: ConsultationConfig) {
     }
     listenerRef.current = listener;
     setListening(true);
-  }, [send]);
+  }, [send, micOn]);
 
   const toggleMic = useCallback(() => {
     const next = !micOn;
@@ -276,16 +281,14 @@ export function useConsultation(config: ConsultationConfig) {
     });
     void transportRef.current?.setMuted(!next);
 
-    // The mic button is the natural place to start and stop dictation, so it
-    // controls both the track and the recogniser.
+    // Muting must also stop dictation, or the recogniser would keep
+    // transcribing from a microphone the patient believes is off.
     if (!next && listenerRef.current) {
       listenerRef.current.stop();
       listenerRef.current = null;
       setListening(false);
-    } else if (next && !listenerRef.current) {
-      toggleListening();
     }
-  }, [micOn, toggleListening]);
+  }, [micOn]);
 
   const toggleCamera = useCallback(() => {
     const next = !cameraOn;

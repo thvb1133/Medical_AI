@@ -83,10 +83,11 @@ export function Console(props: ConsoleProps) {
             videoRef={session.videoRef}
             cameraOn={session.cameraOn}
             micOn={session.micOn}
+            listening={session.listening}
             vitalsActive={session.vitalsLive}
             onToggleCamera={session.toggleCamera}
             onToggleMic={session.toggleMic}
-            onOpenSettings={session.toggleListening}
+            onToggleDictation={session.toggleListening}
           />
         </div>
 

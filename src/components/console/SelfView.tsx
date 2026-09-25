@@ -10,21 +10,22 @@ interface SelfViewProps {
   videoRef: RefObject<HTMLVideoElement | null>;
   cameraOn: boolean;
   micOn: boolean;
+  listening: boolean;
   vitalsActive: boolean;
   onToggleCamera: () => void;
   onToggleMic: () => void;
-  onOpenSettings: () => void;
+  onToggleDictation: () => void;
 }
 
 function BarButton({
   label,
-  active = true,
+  active,
   onClick,
   children,
 }: {
   label: string;
-  active?: boolean;
-  onClick?: () => void;
+  active: boolean;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -33,12 +34,27 @@ function BarButton({
       onClick={onClick}
       title={label}
       aria-label={label}
+      aria-pressed={active}
       className={`flex h-5 w-5 items-center justify-center rounded transition hover:bg-white/20 ${
         active ? "text-white" : "text-white/40"
       }`}
     >
       {children}
     </button>
+  );
+}
+
+/** Non-interactive status glyph, for state the patient cannot change here. */
+function BarStatus({ label, active, children }: { label: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      role="img"
+      className={`flex h-5 w-5 items-center justify-center ${active ? "text-white" : "text-white/40"}`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -54,10 +70,11 @@ export function SelfView({
   videoRef,
   cameraOn,
   micOn,
+  listening,
   vitalsActive,
   onToggleCamera,
   onToggleMic,
-  onOpenSettings,
+  onToggleDictation,
 }: SelfViewProps) {
   return (
     <div className="panel-card relative aspect-[16/10] w-full overflow-hidden bg-[#1a1d21]">
@@ -80,12 +97,16 @@ export function SelfView({
       )}
 
       <div className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-md bg-black/55 px-1 py-0.5 backdrop-blur-sm">
-        <BarButton label="Settings" onClick={onOpenSettings}>
+        <BarButton
+          label={listening ? "Stop voice input" : "Start voice input"}
+          active={listening}
+          onClick={onToggleDictation}
+        >
           <GearIcon className="h-3 w-3" />
         </BarButton>
-        <BarButton label="Camera preview" active={cameraOn}>
+        <BarStatus label={cameraOn ? "Camera feed active" : "Camera feed stopped"} active={cameraOn}>
           <CameraIcon className="h-3 w-3" />
-        </BarButton>
+        </BarStatus>
         <BarButton
           label={cameraOn ? "Turn camera off" : "Turn camera on"}
           active={cameraOn}
@@ -100,12 +121,15 @@ export function SelfView({
         >
           {micOn ? <MicIcon className="h-3 w-3" /> : <MicOffIcon className="h-3 w-3" />}
         </BarButton>
-        <BarButton label="Share screen" active={false}>
+        <BarStatus label="Screen sharing not available" active={false}>
           <ScreenIcon className="h-3 w-3" />
-        </BarButton>
-        <BarButton label={vitalsActive ? "Vitals capture live" : "Vitals simulated"} active={vitalsActive}>
+        </BarStatus>
+        <BarStatus
+          label={vitalsActive ? "Camera vitals live" : "Camera vitals simulated"}
+          active={vitalsActive}
+        >
           <PulseIcon className="h-3 w-3" />
-        </BarButton>
+        </BarStatus>
       </div>
     </div>
   );
