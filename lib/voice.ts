@@ -38,10 +38,9 @@ function detectPitch(frame: Float32Array, sampleRate: number): number | null {
   const maxLag = Math.min(Math.floor(sampleRate / MIN_F0), frame.length - 1);
   if (maxLag <= minLag) return null;
 
+  const correlations = new Float32Array(maxLag + 1);
   let bestLag = -1;
   let bestCorr = 0;
-  let prevCorr = 0;
-  let rising = false;
 
   for (let lag = minLag; lag <= maxLag; lag++) {
     let corr = 0;
@@ -53,18 +52,29 @@ function detectPitch(frame: Float32Array, sampleRate: number): number | null {
       energyB += frame[i + lag] * frame[i + lag];
     }
     const norm = corr / (Math.sqrt(energyA * energyB) + 1e-9);
-
-    // Waiting for the correlation to start rising avoids locking onto lag 0's
-    // trivial peak, which would report an octave-high pitch.
-    if (!rising && norm > prevCorr) rising = true;
-    if (rising && norm > bestCorr) {
+    correlations[lag] = norm;
+    if (norm > bestCorr) {
       bestCorr = norm;
       bestLag = lag;
     }
-    prevCorr = norm;
   }
 
   if (bestLag < 0 || bestCorr < 0.45) return null;
+
+  // Octave correction. A periodic signal correlates just as well at twice its
+  // period, and taking the global maximum picks that longer lag often enough
+  // to systematically halve the reported pitch of higher voices. Preferring
+  // the earliest peak that is nearly as strong resolves it.
+  const OCTAVE_TOLERANCE = 0.85;
+  for (let lag = minLag + 1; lag < bestLag; lag++) {
+    const isPeak =
+      correlations[lag] >= correlations[lag - 1] && correlations[lag] >= correlations[lag + 1];
+    if (isPeak && correlations[lag] >= bestCorr * OCTAVE_TOLERANCE) {
+      bestLag = lag;
+      break;
+    }
+  }
+
   const hz = sampleRate / bestLag;
   return hz >= MIN_F0 && hz <= MAX_F0 ? hz : null;
 }
