@@ -19,6 +19,27 @@ interface Rule {
   patterns: RegExp[];
 }
 
+/**
+ * Hedges and intensifiers people pepper through a disclosure. They carry no
+ * risk information themselves but sit in the middle of the exact phrases the
+ * rules look for — "I'm not *really* sure if I want to keep living" is the
+ * same disclosure as "I'm not sure if I want to keep living", and must not
+ * escape the match because of one adverb. Stripping them before matching
+ * keeps the patterns readable instead of threading optional groups through
+ * every one of them.
+ */
+const FILLERS =
+  /\b(?:really|honestly|actually|genuinely|literally|truly|quite|totally|entirely|completely|kind\s+of|sort\s+of|just|even|maybe|probably|i\s+guess|i\s+mean)\b/gi;
+
+function normalise(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[’']/g, "'")
+    .replace(FILLERS, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const RULES: Rule[] = [
   {
     level: 3,
@@ -37,8 +58,12 @@ const RULES: Rule[] = [
   {
     level: 2,
     patterns: [
-      /\bdon'?t\s+want\s+to\s+(keep\s+)?(living|be\s+here|go\s+on)\b/i,
-      /\bnot\s+sure\s+if\s+i\s+want\s+to\s+keep\s+living\b/i,
+      // Bare "live" is excluded here: "I don't want to live in London" is not
+      // a disclosure, so it needs a qualifier to count.
+      /\bdon'?t\s+want\s+to\s+(keep\s+)?(living|be\s+here|go\s+on|wake\s+up)\b/i,
+      /\bdon'?t\s+want\s+to\s+live\s+(any\s?more|like\s+this)\b/i,
+      /\bnot\s+sure\s+(if\s+|whether\s+)?i\s+want\s+to\s+(keep\s+)?(living|live|go\s+on|be\s+here)\b/i,
+      /\bdon'?t\s+see\s+(the\s+)?point\b/i,
       /\bwhat'?s\s+the\s+point\b/i,
       /\bbetter\s+off\s+without\s+me\b/i,
       /\bcan'?t\s+(go\s+on|do\s+this\s+any\s?more|take\s+it\s+any\s?more)\b/i,
@@ -91,10 +116,14 @@ export function analysisForLevel(level: SafetyLevel): SafetyAnalysis {
   return { level, label: SAFETY_LABELS[level], ...GUIDANCE[level] };
 }
 
-/** Highest level any rule matches across the supplied patient text. */
+/**
+ * Highest level any rule matches across the supplied patient text. Rules are
+ * ordered most severe first, so the first hit is the answer.
+ */
 export function ruleLevel(text: string): SafetyLevel {
+  const cleaned = normalise(text);
   for (const rule of RULES) {
-    if (rule.patterns.some((pattern) => pattern.test(text))) return rule.level;
+    if (rule.patterns.some((pattern) => pattern.test(cleaned))) return rule.level;
   }
   return 0;
 }
